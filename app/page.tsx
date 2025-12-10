@@ -29,41 +29,55 @@ export default function Home() {
     }
 
     try {
-      // Parse Fixture file
-      const fixtureData = await new Promise<Papa.ParseResult<any>>((resolve, reject) => {
-        Papa.parse(fixtureFile, {
-          header: true,
-          skipEmptyLines: true,
-          complete: resolve,
-          error: reject,
-        });
-      });
+      // Parse Fixture CSV
+      const fixtureData = await new Promise<Papa.ParseResult<Record<string, string>>>(
+        (resolve, reject) => {
+          Papa.parse(fixtureFile, {
+            header: true,
+            skipEmptyLines: true,
+            complete: resolve,
+            error: reject,
+          });
+        }
+      );
 
-      // Parse Machine file
-      const machineData = await new Promise<Papa.ParseResult<any>>((resolve, reject) => {
-        Papa.parse(machineFile, {
-          header: true,
-          skipEmptyLines: true,
-          complete: resolve,
-          error: reject,
-        });
-      });
+      // Parse Machine CSV
+      const machineData = await new Promise<Papa.ParseResult<Record<string, string>>>(
+        (resolve, reject) => {
+          Papa.parse(machineFile, {
+            header: true,
+            skipEmptyLines: true,
+            complete: resolve,
+            error: reject,
+          });
+        }
+      );
 
-      // Extract Serial numbers
+      // Extract serial numbers from the specified columns
       const fixtureSerials = new Set(
-        fixtureData.data.map((row: any) => String(row["Serial #"]).trim()).filter(Boolean)
+        fixtureData.data
+          .map((row) => String(row["Serial #"] ?? "").trim())
+          .filter(Boolean)
       );
 
       const machineSerials = new Set(
-        machineData.data.map((row: any) => String(row["Serial_Number"]).trim()).filter(Boolean)
+        machineData.data
+          .map((row) => String(row["Serial_Number"] ?? "").trim())
+          .filter(Boolean)
       );
 
       // Find intersection
-      const matches = Array.from(fixtureSerials).filter((s) => machineSerials.has(s));
+      const matches: string[] = Array.from(fixtureSerials).filter((s) =>
+        machineSerials.has(s)
+      );
 
       setMatchedSerials(matches);
-      if (matches.length === 0) setError("No matching serial numbers found.");
-      else setError("");
+
+      if (matches.length === 0) {
+        setError("No matching serial numbers found.");
+      } else {
+        setError("");
+      }
     } catch (e) {
       console.error(e);
       setError("Error parsing CSV files. Check column names and file format.");
