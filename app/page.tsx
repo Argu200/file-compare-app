@@ -53,31 +53,26 @@ export default function Home() {
         }
       );
 
-      // Extract serial numbers from the specified columns
+      // Extract Serial numbers as strings
       const fixtureSerials = new Set(
         fixtureData.data
           .map((row) => String(row["Serial #"] ?? "").trim())
-          .filter(Boolean)
+          .filter((s): s is string => !!s) // TypeScript-safe filter
       );
 
       const machineSerials = new Set(
         machineData.data
           .map((row) => String(row["Serial_Number"] ?? "").trim())
-          .filter(Boolean)
+          .filter((s): s is string => !!s)
       );
 
-      // Find intersection
-      const matches: string[] = Array.from(fixtureSerials).filter((s) =>
+      // Intersection
+      const matches = Array.from(fixtureSerials).filter((s) =>
         machineSerials.has(s)
       );
 
       setMatchedSerials(matches);
-
-      if (matches.length === 0) {
-        setError("No matching serial numbers found.");
-      } else {
-        setError("");
-      }
+      setError(matches.length === 0 ? "No matching serial numbers found." : "");
     } catch (e) {
       console.error(e);
       setError("Error parsing CSV files. Check column names and file format.");
