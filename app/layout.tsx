@@ -8,3 +8,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   );
 }
+export const metadata = {
+  title: "File Compare App",
+  description: "Compare two files online",
+};
