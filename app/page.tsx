@@ -7,16 +7,23 @@ export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
   const [matchedSerials, setMatchedSerials] = useState<string[]>([]);
 
-  async function handleUpload(uploadedFiles: File[]) {
+  // Store uploaded files but don't process yet
+  function handleUpload(uploadedFiles: File[]) {
     if (uploadedFiles.length !== 2) {
       alert("Please upload exactly 2 files.");
       return;
     }
-
     setFiles(uploadedFiles);
+    setMatchedSerials([]); // clear previous results
+  }
 
-    // Read file contents
-    const [file1, file2] = uploadedFiles;
+  async function handleSearch() {
+    if (files.length !== 2) {
+      alert("Please upload exactly 2 files before searching.");
+      return;
+    }
+
+    const [file1, file2] = files;
     const text1 = await file1.text();
     const text2 = await file2.text();
 
@@ -34,6 +41,10 @@ export default function Home() {
     <main style={{ padding: "2rem" }}>
       <h1>Matched Serial Numbers</h1>
       <FileUploader onUpload={handleUpload} />
+      <div style={{ marginTop: "1rem" }}>
+        <button onClick={handleSearch}>Start Search</button>
+      </div>
+
       {matchedSerials.length > 0 ? (
         <ul style={{ marginTop: "1rem" }}>
           {matchedSerials.map((s) => (
