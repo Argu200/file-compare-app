@@ -2,62 +2,46 @@
 
 import { useState } from "react";
 import FileUploader from "../components/FileUploader";
-import {
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
-  const [data, setData] = useState<{ x: string; y: string }[]>([]);
+  const [matchedSerials, setMatchedSerials] = useState<string[]>([]);
 
   async function handleUpload(uploadedFiles: File[]) {
     if (uploadedFiles.length !== 2) {
-      alert("Please upload exactly 2 files for comparison.");
+      alert("Please upload exactly 2 files.");
       return;
     }
+
     setFiles(uploadedFiles);
 
+    // Read file contents
     const [file1, file2] = uploadedFiles;
     const text1 = await file1.text();
     const text2 = await file2.text();
 
-    // Extract serial numbers (one per line)
-    const serials1 = text1.split(/\r?\n/).filter(Boolean);
-    const serials2 = text2.split(/\r?\n/).filter(Boolean);
+    // Extract serial numbers (assume one per line)
+    const serials1 = new Set(text1.split(/\r?\n/).filter(Boolean));
+    const serials2 = new Set(text2.split(/\r?\n/).filter(Boolean));
 
-    // Prepare scatter data (pair by index)
-    const scatterData = serials1.map((s, i) => ({
-      x: s,
-      y: serials2[i] ?? null, // if lengths differ
-    }));
+    // Find matches (intersection)
+    const matches = Array.from(serials1).filter((s) => serials2.has(s));
 
-    setData(scatterData);
+    setMatchedSerials(matches);
   }
 
   return (
     <main style={{ padding: "2rem" }}>
-      <h1>Serial Number Comparison</h1>
+      <h1>Matched Serial Numbers</h1>
       <FileUploader onUpload={handleUpload} />
-      {data.length > 0 && (
-        <div style={{ width: "100%", height: 400, marginTop: "2rem" }}>
-          <ResponsiveContainer>
-            <ScatterChart
-              margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-            >
-              <CartesianGrid />
-              <XAxis dataKey="x" name="File 1 Serial" />
-              <YAxis dataKey="y" name="File 2 Serial" />
-              <Tooltip />
-              <Scatter name="Serials" data={data} fill="#8884d8" />
-            </ScatterChart>
-          </ResponsiveContainer>
-        </div>
+      {matchedSerials.length > 0 ? (
+        <ul style={{ marginTop: "1rem" }}>
+          {matchedSerials.map((s) => (
+            <li key={s}>{s}</li>
+          ))}
+        </ul>
+      ) : (
+        <p style={{ marginTop: "1rem" }}>No matching serial numbers yet.</p>
       )}
     </main>
   );
