@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import FileUploader from "../components/FileUploader";
+import Papa from "papaparse";
 
 export default function Home() {
   const [fixtureFile, setFixtureFile] = useState<File | null>(null);
@@ -28,35 +29,44 @@ export default function Home() {
     }
 
     try {
-      const text1 = await fixtureFile.text();
-      const text2 = await machineFile.text();
+      // Parse Fixture file
+      const fixtureData = await new Promise<Papa.ParseResult<any>>((resolve, reject) => {
+        Papa.parse(fixtureFile, {
+          header: true,
+          skipEmptyLines: true,
+          complete: resolve,
+          error: reject,
+        });
+      });
 
-      // Split lines, trim, filter empty lines
-      const serials1 = new Set(
-        text1
-          .split(/\r?\n/)
-          .map((s) => s.trim())
-          .filter(Boolean)
-      );
-      const serials2 = new Set(
-        text2
-          .split(/\r?\n/)
-          .map((s) => s.trim())
-          .filter(Boolean)
+      // Parse Machine file
+      const machineData = await new Promise<Papa.ParseResult<any>>((resolve, reject) => {
+        Papa.parse(machineFile, {
+          header: true,
+          skipEmptyLines: true,
+          complete: resolve,
+          error: reject,
+        });
+      });
+
+      // Extract Serial numbers
+      const fixtureSerials = new Set(
+        fixtureData.data.map((row: any) => String(row["Serial #"]).trim()).filter(Boolean)
       );
 
-      const matches = Array.from(serials1).filter((s) => serials2.has(s));
+      const machineSerials = new Set(
+        machineData.data.map((row: any) => String(row["Serial_Number"]).trim()).filter(Boolean)
+      );
+
+      // Find intersection
+      const matches = Array.from(fixtureSerials).filter((s) => machineSerials.has(s));
 
       setMatchedSerials(matches);
-
-      if (matches.length === 0) {
-        setError("No matching serial numbers found.");
-      } else {
-        setError("");
-      }
+      if (matches.length === 0) setError("No matching serial numbers found.");
+      else setError("");
     } catch (e) {
-      setError("Error reading files. Make sure they are plain text or CSV.");
       console.error(e);
+      setError("Error parsing CSV files. Check column names and file format.");
     }
   }
 
@@ -66,13 +76,13 @@ export default function Home() {
 
       <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-xl space-y-4">
         <div>
-          <h2 className="font-semibold mb-1">Fixture Data:</h2>
+          <h2 className="font-semibold mb-1">Fixture Data (Serial # column):</h2>
           <FileUploader singleFile onUpload={handleFixtureUpload} />
           {fixtureFile && <p className="text-gray-600 mt-1">{fixtureFile.name}</p>}
         </div>
 
         <div>
-          <h2 className="font-semibold mb-1">Machine Data:</h2>
+          <h2 className="font-semibold mb-1">Machine Data (Serial_Number column):</h2>
           <FileUploader singleFile onUpload={handleMachineUpload} />
           {machineFile && <p className="text-gray-600 mt-1">{machineFile.name}</p>}
         </div>
