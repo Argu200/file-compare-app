@@ -13,9 +13,14 @@ export default function FileUploader({ onUpload }: { onUpload: (files: File[]) =
   }
 
   return (
-    <div>
-      <p>Select two files:</p>
-      <input type="file" multiple onChange={handleFileChange} />
+    <div className="flex flex-col">
+      <label className="mb-2 font-medium">Upload exactly 2 files:</label>
+      <input
+        type="file"
+        multiple
+        onChange={handleFileChange}
+        className="border border-gray-300 p-2 rounded"
+      />
     </div>
   );
 }
