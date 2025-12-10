@@ -4,33 +4,32 @@ import { useState } from "react";
 import FileUploader from "../components/FileUploader";
 
 export default function Home() {
-  const [files, setFiles] = useState<File[]>([]);
+  const [fixtureFile, setFixtureFile] = useState<File | null>(null);
+  const [machineFile, setMachineFile] = useState<File | null>(null);
   const [matchedSerials, setMatchedSerials] = useState<string[]>([]);
   const [error, setError] = useState("");
 
-  function handleUpload(uploadedFiles: File[]) {
-    if (uploadedFiles.length !== 2) {
-      setError("Please upload exactly 2 files.");
-      setFiles([]);
-      setMatchedSerials([]);
-      return;
-    }
-    setFiles(uploadedFiles);
+  function handleFixtureUpload(file: File) {
+    setFixtureFile(file);
+    setMatchedSerials([]);
+    setError("");
+  }
+
+  function handleMachineUpload(file: File) {
+    setMachineFile(file);
     setMatchedSerials([]);
     setError("");
   }
 
   async function handleSearch() {
-    if (files.length !== 2) {
-      setError("Please upload exactly 2 files before searching.");
+    if (!fixtureFile || !machineFile) {
+      setError("Please upload both Fixture and Machine data files.");
       return;
     }
 
     try {
-      const [file1, file2] = files;
-
-      const text1 = await file1.text();
-      const text2 = await file2.text();
+      const text1 = await fixtureFile.text();
+      const text2 = await machineFile.text();
 
       // Split lines, trim, filter empty lines
       const serials1 = new Set(
@@ -65,8 +64,18 @@ export default function Home() {
     <main className="min-h-screen bg-gray-100 flex flex-col items-center p-8">
       <h1 className="text-3xl font-bold mb-6">Serial Number Matcher</h1>
 
-      <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-xl">
-        <FileUploader onUpload={handleUpload} />
+      <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-xl space-y-4">
+        <div>
+          <h2 className="font-semibold mb-1">Fixture Data:</h2>
+          <FileUploader singleFile onUpload={handleFixtureUpload} />
+          {fixtureFile && <p className="text-gray-600 mt-1">{fixtureFile.name}</p>}
+        </div>
+
+        <div>
+          <h2 className="font-semibold mb-1">Machine Data:</h2>
+          <FileUploader singleFile onUpload={handleMachineUpload} />
+          {machineFile && <p className="text-gray-600 mt-1">{machineFile.name}</p>}
+        </div>
 
         <button
           onClick={handleSearch}
