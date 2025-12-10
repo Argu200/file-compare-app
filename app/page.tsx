@@ -4,32 +4,48 @@ import { useState } from "react";
 import FileUploader from "../components/FileUploader";
 
 export default function Home() {
+  const [files, setFiles] = useState<File[]>([]);
+  const [serial, setSerial] = useState("");
   const [result, setResult] = useState("");
 
-  async function handleUpload(files: File[]) {
-    if (files.length < 2) {
-      setResult("Please upload 2 files.");
+  async function handleUpload(uploadedFiles: File[]) {
+    setFiles(uploadedFiles);
+    setResult(""); // reset previous result
+  }
+
+  async function handleSearch() {
+    if (files.length === 0) {
+      setResult("Please upload at least one file.");
       return;
     }
 
     const formData = new FormData();
-    formData.append("file1", files[0]);
-    formData.append("file2", files[1]);
+    files.forEach((file, index) => formData.append(`file${index}`, file));
+    formData.append("serial", serial);
 
-    const response = await fetch("/api/compare", {
+    const res = await fetch("/api/search-serial", {
       method: "POST",
       body: formData,
     });
-
-    const data = await response.json();
+    const data = await res.json();
     setResult(data.result);
   }
 
   return (
     <main style={{ padding: "2rem" }}>
-      <h1>File Compare App</h1>
-      <p>Upload two files to compare their contents.</p>
+      <h1>Serial Number Finder</h1>
       <FileUploader onUpload={handleUpload} />
+      <div style={{ marginTop: "1rem" }}>
+        <input
+          type="text"
+          placeholder="Enter Serial Number"
+          value={serial}
+          onChange={(e) => setSerial(e.target.value)}
+        />
+        <button style={{ marginLeft: "1rem" }} onClick={handleSearch}>
+          Find Serial
+        </button>
+      </div>
       <h2 style={{ marginTop: "2rem" }}>Result:</h2>
       <pre
         style={{
