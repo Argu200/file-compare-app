@@ -56,11 +56,12 @@ export default function Home() {
         }
       );
 
-      // Extract serial numbers
+      // Extract Fixture serial numbers starting with AD15
       const fixtureColumn: string[] = fixtureData.data
         .map((row) => String(row["Serial #"] ?? "").trim())
-        .filter((s) => s.length > 0);
+        .filter((s) => s.length > 0 && s.startsWith("AD15"));
 
+      // Extract Machine serial numbers
       const machineColumn: string[] = machineData.data
         .map((row) => String(row["Serial_Number"] ?? "").trim())
         .filter((s) => s.length > 0);
@@ -81,7 +82,7 @@ export default function Home() {
       <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-xl space-y-4">
         {/* Fixture Data Upload */}
         <div>
-          <h2 className="font-semibold mb-1">Fixture Data (Serial # column):</h2>
+          <h2 className="font-semibold mb-1">Fixture Data (Serial # column, starts with AD15):</h2>
           <FileUploader singleFile onUpload={handleFixtureUpload} />
           {fixtureFile && <p className="text-gray-600 mt-1">{fixtureFile.name}</p>}
         </div>
@@ -107,7 +108,7 @@ export default function Home() {
         {/* Fixture Serial Numbers */}
         {fixtureSerials.length > 0 && (
           <div className="mt-6">
-            <h2 className="text-xl font-semibold mb-2">Fixture Serial # Column</h2>
+            <h2 className="text-xl font-semibold mb-2">Fixture Serial # Column (AD15 only)</h2>
             <div className="max-h-64 overflow-y-auto bg-gray-50 p-3 rounded border border-gray-200">
               <ul className="list-disc list-inside">
                 {fixtureSerials.map((s, i) => (
