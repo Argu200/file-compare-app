@@ -11,6 +11,7 @@ export default function Home() {
   const [machineSerials, setMachineSerials] = useState<string[]>([]);
   const [error, setError] = useState("");
 
+  // Upload handlers
   function handleFixtureUpload(file: File) {
     setFixtureFile(file);
     setFixtureSerials([]);
@@ -23,6 +24,7 @@ export default function Home() {
     setError("");
   }
 
+  // Parse CSV and display serial numbers
   async function handleShowColumns() {
     if (!fixtureFile || !machineFile) {
       setError("Please upload both Fixture and Machine data files.");
@@ -54,56 +56,41 @@ export default function Home() {
         }
       );
 
-      // Auto-detect Fixture Serial column
-      const fixtureColName = Object.keys(fixtureData.data[0] || {}).find((col) =>
-        col.toLowerCase().includes("serial")
-      );
-      if (!fixtureColName) throw new Error("No serial number column found in Fixture file.");
-
-      // Auto-detect Machine Serial column
-      const machineColName = Object.keys(machineData.data[0] || {}).find((col) =>
-        col.toLowerCase().includes("serial")
-      );
-      if (!machineColName) throw new Error("No serial number column found in Machine file.");
-
       // Extract serial numbers
       const fixtureColumn: string[] = fixtureData.data
-        .map((row) => String(row[fixtureColName] ?? "").trim())
+        .map((row) => String(row["Serial #"] ?? "").trim())
         .filter((s) => s.length > 0);
 
       const machineColumn: string[] = machineData.data
-        .map((row) => String(row[machineColName] ?? "").trim())
+        .map((row) => String(row["Serial_Number"] ?? "").trim())
         .filter((s) => s.length > 0);
 
       setFixtureSerials(fixtureColumn);
       setMachineSerials(machineColumn);
       setError("");
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
-      setError(e.message || "Error parsing CSV files. Check column names and file format.");
+      setError("Error parsing CSV files. Check column names and file format.");
     }
   }
-
-  const maxRows = Math.max(fixtureSerials.length, machineSerials.length);
 
   return (
     <main className="min-h-screen bg-gray-100 flex flex-col items-center p-8">
       <h1 className="text-3xl font-bold mb-6">CSV Column Viewer</h1>
 
-      <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-3xl space-y-4">
-        {/* File Uploaders */}
-        <div className="flex space-x-4">
-          <div className="flex-1">
-            <h2 className="font-semibold mb-1">Fixture Data:</h2>
-            <FileUploader singleFile onUpload={handleFixtureUpload} />
-            {fixtureFile && <p className="text-gray-600 mt-1">{fixtureFile.name}</p>}
-          </div>
+      <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-xl space-y-4">
+        {/* Fixture Data Upload */}
+        <div>
+          <h2 className="font-semibold mb-1">Fixture Data (Serial # column):</h2>
+          <FileUploader singleFile onUpload={handleFixtureUpload} />
+          {fixtureFile && <p className="text-gray-600 mt-1">{fixtureFile.name}</p>}
+        </div>
 
-          <div className="flex-1">
-            <h2 className="font-semibold mb-1">Machine Data:</h2>
-            <FileUploader singleFile onUpload={handleMachineUpload} />
-            {machineFile && <p className="text-gray-600 mt-1">{machineFile.name}</p>}
-          </div>
+        {/* Machine Data Upload */}
+        <div>
+          <h2 className="font-semibold mb-1">Machine Data (Serial_Number column):</h2>
+          <FileUploader singleFile onUpload={handleMachineUpload} />
+          {machineFile && <p className="text-gray-600 mt-1">{machineFile.name}</p>}
         </div>
 
         {/* Show Columns Button */}
@@ -111,30 +98,37 @@ export default function Home() {
           onClick={handleShowColumns}
           className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
         >
-          Show Columns Side by Side
+          Show Columns
         </button>
 
+        {/* Error Message */}
         {error && <p className="mt-4 text-red-600">{error}</p>}
 
-        {/* Table of Serial Numbers */}
-        {(fixtureSerials.length > 0 || machineSerials.length > 0) && (
-          <div className="mt-6 overflow-x-auto">
-            <table className="min-w-full border border-gray-300 bg-gray-50">
-              <thead className="bg-gray-200">
-                <tr>
-                  <th className="border px-4 py-2">Fixture Serial #</th>
-                  <th className="border px-4 py-2">Machine Serial_Number</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Array.from({ length: maxRows }).map((_, idx) => (
-                  <tr key={idx} className="even:bg-gray-100">
-                    <td className="border px-4 py-2">{fixtureSerials[idx] ?? ""}</td>
-                    <td className="border px-4 py-2">{machineSerials[idx] ?? ""}</td>
-                  </tr>
+        {/* Fixture Serial Numbers */}
+        {fixtureSerials.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold mb-2">Fixture Serial # Column</h2>
+            <div className="max-h-64 overflow-y-auto bg-gray-50 p-3 rounded border border-gray-200">
+              <ul className="list-disc list-inside">
+                {fixtureSerials.map((s, i) => (
+                  <li key={i}>{s}</li>
                 ))}
-              </tbody>
-            </table>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Machine Serial Numbers */}
+        {machineSerials.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold mb-2">Machine Serial_Number Column</h2>
+            <div className="max-h-64 overflow-y-auto bg-gray-50 p-3 rounded border border-gray-200">
+              <ul className="list-disc list-inside">
+                {machineSerials.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </div>
           </div>
         )}
       </div>
