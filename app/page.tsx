@@ -2,61 +2,63 @@
 
 import { useState } from "react";
 import FileUploader from "../components/FileUploader";
+import {
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
-  const [serial, setSerial] = useState("");
-  const [result, setResult] = useState("");
+  const [data, setData] = useState<{ x: string; y: string }[]>([]);
 
   async function handleUpload(uploadedFiles: File[]) {
-    setFiles(uploadedFiles);
-    setResult(""); // reset previous result
-  }
-
-  async function handleSearch() {
-    if (files.length === 0) {
-      setResult("Please upload at least one file.");
+    if (uploadedFiles.length !== 2) {
+      alert("Please upload exactly 2 files for comparison.");
       return;
     }
+    setFiles(uploadedFiles);
 
-    const formData = new FormData();
-    files.forEach((file, index) => formData.append(`file${index}`, file));
-    formData.append("serial", serial);
+    const [file1, file2] = uploadedFiles;
+    const text1 = await file1.text();
+    const text2 = await file2.text();
 
-    const res = await fetch("/api/search-serial", {
-      method: "POST",
-      body: formData,
-    });
-    const data = await res.json();
-    setResult(data.result);
+    // Extract serial numbers (one per line)
+    const serials1 = text1.split(/\r?\n/).filter(Boolean);
+    const serials2 = text2.split(/\r?\n/).filter(Boolean);
+
+    // Prepare scatter data (pair by index)
+    const scatterData = serials1.map((s, i) => ({
+      x: s,
+      y: serials2[i] ?? null, // if lengths differ
+    }));
+
+    setData(scatterData);
   }
 
   return (
     <main style={{ padding: "2rem" }}>
-      <h1>Serial Number Finder</h1>
+      <h1>Serial Number Comparison</h1>
       <FileUploader onUpload={handleUpload} />
-      <div style={{ marginTop: "1rem" }}>
-        <input
-          type="text"
-          placeholder="Enter Serial Number"
-          value={serial}
-          onChange={(e) => setSerial(e.target.value)}
-        />
-        <button style={{ marginLeft: "1rem" }} onClick={handleSearch}>
-          Find Serial
-        </button>
-      </div>
-      <h2 style={{ marginTop: "2rem" }}>Result:</h2>
-      <pre
-        style={{
-          background: "#f4f4f4",
-          padding: "1rem",
-          borderRadius: "8px",
-          minHeight: "60px",
-        }}
-      >
-        {result}
-      </pre>
+      {data.length > 0 && (
+        <div style={{ width: "100%", height: 400, marginTop: "2rem" }}>
+          <ResponsiveContainer>
+            <ScatterChart
+              margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+            >
+              <CartesianGrid />
+              <XAxis dataKey="x" name="File 1 Serial" />
+              <YAxis dataKey="y" name="File 2 Serial" />
+              <Tooltip />
+              <Scatter name="Serials" data={data} fill="#8884d8" />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </main>
   );
 }
