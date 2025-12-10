@@ -26,12 +26,10 @@ export default function Home() {
   }
 
   return (
-    <main style={{ padding: "2rem", fontFamily: "Arial" }}>
+    <main style={{ padding: "2rem" }}>
       <h1>File Compare App</h1>
       <p>Upload two files to compare their contents.</p>
-
       <FileUploader onUpload={handleUpload} />
-
       <h2 style={{ marginTop: "2rem" }}>Result:</h2>
       <pre
         style={{
