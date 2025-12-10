@@ -10,6 +10,7 @@ export default function Home() {
   const [matchedSerials, setMatchedSerials] = useState<string[]>([]);
   const [error, setError] = useState("");
 
+  // Upload handlers
   function handleFixtureUpload(file: File) {
     setFixtureFile(file);
     setMatchedSerials([]);
@@ -22,6 +23,7 @@ export default function Home() {
     setError("");
   }
 
+  // Search button handler
   async function handleSearch() {
     if (!fixtureFile || !machineFile) {
       setError("Please upload both Fixture and Machine data files.");
@@ -53,22 +55,22 @@ export default function Home() {
         }
       );
 
-      // Extract Serial numbers as strings
-      const fixtureSerials = new Set(
+      // Extract serial numbers as strings
+      const fixtureSerials: Set<string> = new Set(
         fixtureData.data
           .map((row) => String(row["Serial #"] ?? "").trim())
-          .filter((s): s is string => !!s) // TypeScript-safe filter
+          .filter((s) => s.length > 0)
       );
 
-      const machineSerials = new Set(
+      const machineSerials: Set<string> = new Set(
         machineData.data
           .map((row) => String(row["Serial_Number"] ?? "").trim())
-          .filter((s): s is string => !!s)
+          .filter((s) => s.length > 0)
       );
 
-      // Intersection
-      const matches = Array.from(fixtureSerials).filter((s) =>
-        machineSerials.has(s)
+      // Find intersection
+      const matches: string[] = Array.from(fixtureSerials).filter(
+        (s): s is string => machineSerials.has(s)
       );
 
       setMatchedSerials(matches);
@@ -84,18 +86,21 @@ export default function Home() {
       <h1 className="text-3xl font-bold mb-6">Serial Number Matcher</h1>
 
       <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-xl space-y-4">
+        {/* Fixture Data Upload */}
         <div>
           <h2 className="font-semibold mb-1">Fixture Data (Serial # column):</h2>
           <FileUploader singleFile onUpload={handleFixtureUpload} />
           {fixtureFile && <p className="text-gray-600 mt-1">{fixtureFile.name}</p>}
         </div>
 
+        {/* Machine Data Upload */}
         <div>
           <h2 className="font-semibold mb-1">Machine Data (Serial_Number column):</h2>
           <FileUploader singleFile onUpload={handleMachineUpload} />
           {machineFile && <p className="text-gray-600 mt-1">{machineFile.name}</p>}
         </div>
 
+        {/* Start Search Button */}
         <button
           onClick={handleSearch}
           className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
@@ -103,8 +108,10 @@ export default function Home() {
           Start Search
         </button>
 
+        {/* Error Message */}
         {error && <p className="mt-4 text-red-600">{error}</p>}
 
+        {/* Matched Serial Numbers */}
         {matchedSerials.length > 0 && (
           <div className="mt-6">
             <h2 className="text-xl font-semibold mb-2">
