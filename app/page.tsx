@@ -11,8 +11,6 @@ export default function Home() {
   const [machineSerials, setMachineSerials] = useState<string[]>([]);
   const [error, setError] = useState("");
 
-  const startRow = 14; // 0-indexed: AD15 = row 15, so index 14
-
   function handleFixtureUpload(file: File) {
     setFixtureFile(file);
     setFixtureSerials([]);
@@ -32,43 +30,57 @@ export default function Home() {
     }
 
     try {
-      // Parse Fixture CSV starting from row 15 (skip first 14 rows)
-      const fixtureData = await new Promise<Papa.ParseResult<string[]>>((resolve, reject) => {
-        Papa.parse(fixtureFile, {
-          skipEmptyLines: true,
-          dynamicTyping: false,
-          complete: resolve,
-          error: reject,
-        });
-      });
+      // Parse Fixture CSV
+      const fixtureData = await new Promise<Papa.ParseResult<Record<string, string>>>(
+        (resolve, reject) => {
+          Papa.parse(fixtureFile, {
+            header: true,
+            skipEmptyLines: true,
+            complete: resolve,
+            error: reject,
+          });
+        }
+      );
 
-      // Parse Machine CSV starting from row 15
-      const machineData = await new Promise<Papa.ParseResult<string[]>>((resolve, reject) => {
-        Papa.parse(machineFile, {
-          skipEmptyLines: true,
-          dynamicTyping: false,
-          complete: resolve,
-          error: reject,
-        });
-      });
+      // Parse Machine CSV
+      const machineData = await new Promise<Papa.ParseResult<Record<string, string>>>(
+        (resolve, reject) => {
+          Papa.parse(machineFile, {
+            header: true,
+            skipEmptyLines: true,
+            complete: resolve,
+            error: reject,
+          });
+        }
+      );
 
-      // Extract Serial columns assuming headers may be missing
+      // Auto-detect Fixture Serial column
+      const fixtureColName = Object.keys(fixtureData.data[0] || {}).find((col) =>
+        col.toLowerCase().includes("serial")
+      );
+      if (!fixtureColName) throw new Error("No serial number column found in Fixture file.");
+
+      // Auto-detect Machine Serial column
+      const machineColName = Object.keys(machineData.data[0] || {}).find((col) =>
+        col.toLowerCase().includes("serial")
+      );
+      if (!machineColName) throw new Error("No serial number column found in Machine file.");
+
+      // Extract serial numbers
       const fixtureColumn: string[] = fixtureData.data
-        .slice(startRow)
-        .map((row: any) => row[0]?.toString().trim() ?? "")
-        .filter((s: string) => s.length > 0);
+        .map((row) => String(row[fixtureColName] ?? "").trim())
+        .filter((s) => s.length > 0);
 
       const machineColumn: string[] = machineData.data
-        .slice(startRow)
-        .map((row: any) => row[0]?.toString().trim() ?? "")
-        .filter((s: string) => s.length > 0);
+        .map((row) => String(row[machineColName] ?? "").trim())
+        .filter((s) => s.length > 0);
 
       setFixtureSerials(fixtureColumn);
       setMachineSerials(machineColumn);
       setError("");
     } catch (e: any) {
       console.error(e);
-      setError("Error parsing CSV files. Make sure the files are correct CSVs.");
+      setError(e.message || "Error parsing CSV files. Check column names and file format.");
     }
   }
 
