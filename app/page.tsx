@@ -6,31 +6,59 @@ import FileUploader from "../components/FileUploader";
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
   const [matchedSerials, setMatchedSerials] = useState<string[]>([]);
+  const [error, setError] = useState("");
 
   function handleUpload(uploadedFiles: File[]) {
     if (uploadedFiles.length !== 2) {
-      alert("Please upload exactly 2 files.");
+      setError("Please upload exactly 2 files.");
+      setFiles([]);
+      setMatchedSerials([]);
       return;
     }
     setFiles(uploadedFiles);
     setMatchedSerials([]);
+    setError("");
   }
 
   async function handleSearch() {
     if (files.length !== 2) {
-      alert("Please upload exactly 2 files before searching.");
+      setError("Please upload exactly 2 files before searching.");
       return;
     }
 
-    const [file1, file2] = files;
-    const text1 = await file1.text();
-    const text2 = await file2.text();
+    try {
+      const [file1, file2] = files;
 
-    const serials1 = new Set(text1.split(/\r?\n/).filter(Boolean));
-    const serials2 = new Set(text2.split(/\r?\n/).filter(Boolean));
+      const text1 = await file1.text();
+      const text2 = await file2.text();
 
-    const matches = Array.from(serials1).filter((s) => serials2.has(s));
-    setMatchedSerials(matches);
+      // Split lines, trim, filter empty lines
+      const serials1 = new Set(
+        text1
+          .split(/\r?\n/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+      );
+      const serials2 = new Set(
+        text2
+          .split(/\r?\n/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+      );
+
+      const matches = Array.from(serials1).filter((s) => serials2.has(s));
+
+      setMatchedSerials(matches);
+
+      if (matches.length === 0) {
+        setError("No matching serial numbers found.");
+      } else {
+        setError("");
+      }
+    } catch (e) {
+      setError("Error reading files. Make sure they are plain text or CSV.");
+      console.error(e);
+    }
   }
 
   return (
@@ -47,22 +75,22 @@ export default function Home() {
           Start Search
         </button>
 
-        <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-2">
-            Matched Serial Numbers ({matchedSerials.length})
-          </h2>
-          <div className="max-h-64 overflow-y-auto bg-gray-50 p-3 rounded border border-gray-200">
-            {matchedSerials.length > 0 ? (
+        {error && <p className="mt-4 text-red-600">{error}</p>}
+
+        {matchedSerials.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold mb-2">
+              Matched Serial Numbers ({matchedSerials.length})
+            </h2>
+            <div className="max-h-64 overflow-y-auto bg-gray-50 p-3 rounded border border-gray-200">
               <ul className="list-disc list-inside">
                 {matchedSerials.map((s) => (
                   <li key={s}>{s}</li>
                 ))}
               </ul>
-            ) : (
-              <p>No matches yet.</p>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </main>
   );
