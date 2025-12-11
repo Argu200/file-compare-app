@@ -1,5 +1,11 @@
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body { height: 100%; }
+
+/* handy focus helper */
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2;
 }
