@@ -1,142 +1,76 @@
+
 "use client";
 
 import { useState } from "react";
+import TopBar from "../components/TopBar";
 import FileUploader from "../components/FileUploader";
-import Papa from "papaparse";
+import DiffView from "../components/DiffView";
 
-export default function Home() {
-  const [fixtureFile, setFixtureFile] = useState<File | null>(null);
-  const [machineFile, setMachineFile] = useState<File | null>(null);
-  const [fixtureSerials, setFixtureSerials] = useState<string[]>([]);
-  const [machineSerials, setMachineSerials] = useState<string[]>([]);
-  const [error, setError] = useState("");
+export default function Page() {
+  const [fileA, setFileA] = useState<File | null>(null);
+  const [fileB, setFileB] = useState<File | null>(null);
+  const [leftText, setLeftText] = useState<string>("");
+  const [rightText, setRightText] = useState<string>("");
+  const [isComparing, setIsComparing] = useState(false);
 
-  // Upload handlers
-  function handleFixtureUpload(file: File) {
-    setFixtureFile(file);
-    setFixtureSerials([]);
-    setError("");
-  }
-
-  function handleMachineUpload(file: File) {
-    setMachineFile(file);
-    setMachineSerials([]);
-    setError("");
-  }
-
-  // Parse CSV and display serial numbers
-  async function handleShowColumns() {
-    if (!fixtureFile || !machineFile) {
-      setError("Please upload both Fixture and Machine data files.");
-      return;
-    }
-
+  async function handleCompare() {
+    if (!fileA || !fileB) return;
+    setIsComparing(true);
     try {
-      // Parse Fixture CSV
-      const fixtureData = await new Promise<Papa.ParseResult<Record<string, string>>>(
-        (resolve, reject) => {
-          Papa.parse(fixtureFile, {
-            header: true,
-            skipEmptyLines: true,
-            complete: resolve,
-            error: reject,
-          });
-        }
-      );
-
-      // Parse Machine CSV
-      const machineData = await new Promise<Papa.ParseResult<Record<string, string>>>(
-        (resolve, reject) => {
-          Papa.parse(machineFile, {
-            header: true,
-            skipEmptyLines: true,
-            complete: resolve,
-            error: reject,
-          });
-        }
-      );
-
-      // Extract Fixture serial numbers between AD15 and AD76
-      const fixtureColumn: string[] = fixtureData.data
-        .map((row) => String(row["Serial #"] ?? "").trim())
-        .filter((s) => {
-          if (s.length === 0) return false;
-          const numPart = parseInt(s.replace(/^AD/, ""), 10);
-          return !isNaN(numPart) && numPart >= 15 && numPart <= 76;
-        });
-
-      // Extract Machine serial numbers
-      const machineColumn: string[] = machineData.data
-        .map((row) => String(row["Serial_Number"] ?? "").trim())
-        .filter((s) => s.length > 0);
-
-      setFixtureSerials(fixtureColumn);
-      setMachineSerials(machineColumn);
-      setError("");
-    } catch (e) {
-      console.error(e);
-      setError("Error parsing CSV files. Check column names and file format.");
+      const [aText, bText] = await Promise.all([fileA.text(), fileB.text()]);
+      setLeftText(aText);
+      setRightText(bText);
+    } finally {
+      setIsComparing(false);
     }
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 flex flex-col items-center p-8">
-      <h1 className="text-3xl font-bold mb-6">CSV Column Viewer</h1>
+    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-indigo-100">
+      <TopBar />
 
-      <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-xl space-y-4">
-        {/* Fixture Data Upload */}
-        <div>
-          <h2 className="font-semibold mb-1">Fixture Data (Serial # column):</h2>
-          <FileUploader singleFile onUpload={handleFixtureUpload} />
-          {fixtureFile && <p className="text-gray-600 mt-1">{fixtureFile.name}</p>}
+      <main className="mx-auto max-w-7xl px-4 pt-8 pb-20">
+        <h1 className="text-2xl font-bold text-gray-900">Compare two files</h1>
+        <p className="text-sm text-gray-600 mt-1">
+          Supports plain text, CSV, and JSON (line-by-line preview). Drop files below or browse.
+        </p>
+
+        <div className="mt-6">
+          <FileUploader
+            accept=".txt,.csv,.json"
+            onChange={({ a, b }) => {
+              setFileA(a);
+              setFileB(b);
+            }}
+          />
         </div>
 
-        {/* Machine Data Upload */}
-        <div>
-          <h2 className="font-semibold mb-1">Machine Data (Serial_Number column):</h2>
-          <FileUploader singleFile onUpload={handleMachineUpload} />
-          {machineFile && <p className="text-gray-600 mt-1">{machineFile.name}</p>}
+        {/* action bar */}
+        <div className="sticky bottom-4 z-40 mx-auto max-w-7xl">
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-white shadow-card p-3 flex items-center justify-between">
+            <p className="text-sm text-gray-600">
+              Select two files to run comparison. (Cmd/Ctrl + Enter to compare)
+            </p>
+            <button
+              type="button"
+              disabled={!fileA || !fileB || isComparing}
+              onClick={handleCompare}
+              className="focus-ring inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-white disabled:opacity-50 hover:bg-brand-700 transition"
+            >
+              {isComparing ? "Comparing…" : "Compare"}
+            </button>
+          </div>
         </div>
 
-        {/* Show Columns Button */}
-        <button
-          onClick={handleShowColumns}
-          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
-        >
-          Show Columns
-        </button>
-
-        {/* Error Message */}
-        {error && <p className="mt-4 text-red-600">{error}</p>}
-
-        {/* Fixture Serial Numbers */}
-        {fixtureSerials.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-xl font-semibold mb-2">Fixture Serial # Column (AD15 → AD76)</h2>
-            <div className="max-h-64 overflow-y-auto bg-gray-50 p-3 rounded border border-gray-200">
-              <ul className="list-disc list-inside">
-                {fixtureSerials.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
+        {(leftText || rightText) && (
+          <DiffView
+            left={leftText}
+            right={rightText}
+            titleLeft={fileA?.name || "File A"}
+            titleRight={fileB?.name || "File B"}
+          />
         )}
-
-        {/* Machine Serial Numbers */}
-        {machineSerials.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-xl font-semibold mb-2">Machine Serial_Number Column</h2>
-            <div className="max-h-64 overflow-y-auto bg-gray-50 p-3 rounded border border-gray-200">
-              <ul className="list-disc list-inside">
-                {machineSerials.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
